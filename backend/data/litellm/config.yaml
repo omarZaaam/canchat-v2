@@ -1,4 +1,16 @@
-general_settings: {}
-litellm_settings: {}
-model_list: []
-router_settings: {}
+model_list:
+  - model_name: llama-3-8b
+    litellm_params:
+      # all params accepted by litellm.completion()
+      model: watsonx/meta-llama/llama-3-8b-instruct
+      api_key: "os.environ/WATSONX_API_KEY" # does os.getenv("WATSONX_API_KEY")
+  - model_name: llama-3-70b
+    litellm_params:
+      # all params accepted by litellm.completion()
+      model: watsonx/meta-llama/llama-3-70b-instruct
+      api_key: "os.environ/WATSONX_API_KEY"
+  - model_name: granite-13b
+    litellm_params:
+      # all params accepted by litellm.completion()
+      model: watsonx/ibm/granite-13b-chat-v2
+      api_key: "os.environ/WATSONX_API_KEY" 

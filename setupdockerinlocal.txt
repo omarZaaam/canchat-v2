@@ -1,0 +1,41 @@
+python3.11 -m venv venv-ssc
+
+source venv-ssc/bin/activate
+
+
+cd backend
+
+cd data
+
+cd litellm
+
+#To deploy LiteLLM:
+docker run -d \
+  -p 4000:4000 \
+  --name litellm \
+  -v ./config.yaml:/app/config.yaml \
+  -e WATSONX_APIKEY=YXBbUaPerhxIAKSy831GgiwMaRiMAg5sfXw7bmzL8RuW \
+  -e WATSONX_PROJECT_ID=b73371d8-de23-44c1-92ee-4a51c7e0702d \
+  -e WATSONX_URL=https://us-south.ml.cloud.ibm.com \
+  --restart always \
+  ghcr.io/berriai/litellm:main-latest \
+  --config /app/config.yaml --port 4000
+
+#To deploy the pipeline:
+docker run -d -p 9099:9099 --add-host=host.docker.internal:host-gateway -v pipelines:/app/pipelines --name pipelines --restart always --env-file .env ghcr.io/open-webui/pipelines:latest
+
+#To deploy Open webUI:
+docker run -d -p 4001:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+
+
+
+#############################################################Not mandatory steps ####################################################################################
+#clone the litellm
+git clone https://github.com/BerriAI/litellm
+
+#for python 3.11 env
+python3.11 -m venv venv-ssc   
+source venv-ssc/bin/activate  
+pip install open-webui   
+pip install --upgrade pip  
+git clone https://github.com/open-webui/open-webui.git
