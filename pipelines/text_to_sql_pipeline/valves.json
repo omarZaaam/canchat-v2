@@ -1,0 +1,1 @@
+{"DB_HOST": "127.0.0.1", "DB_PORT": "5432", "DB_USER": "''", "DB_PASSWORD": "''", "DB_DATABASE": "postgres", "DB_TABLES": ["albums"], "OLLAMA_HOST": "http://172.17.0.1:4000", "TEXT_TO_SQL_MODEL": "phi3:latest"}

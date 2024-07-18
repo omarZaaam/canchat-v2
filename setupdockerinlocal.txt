@@ -27,7 +27,8 @@ docker run -d -p 9099:9099 --add-host=host.docker.internal:host-gateway -v pipel
 #To deploy Open webUI:
 docker run -d -p 4001:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
 
-
+#what i am trying:
+docker run -d -p 5001:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui-sql --restart always -e OPENAI_API_BASE_URL=http://host.docker.internal:9099 -e OPENAI_API_KEY=0p3n-w3bu! ghcr.io/open-webui/open-webui:main
 
 #############################################################Not mandatory steps ####################################################################################
 #clone the litellm
@@ -39,3 +40,7 @@ source venv-ssc/bin/activate
 pip install open-webui   
 pip install --upgrade pip  
 git clone https://github.com/open-webui/open-webui.git
+
+
+docker network ls  
+docker network inspect bridge
