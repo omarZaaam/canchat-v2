@@ -26,7 +26,7 @@ cd pipelines
 docker build -t pipeline .
 
 #To deploy the pipeline:
-docker run -d -p 9099:9099 --add-host=host.docker.internal:host-gateway -v pipelines:/app/pipelines --name pipelines --restart always --env-file .env ghcr.io/open-webui/pipelines:latest
+#docker run -d -p 9099:9099 --add-host=host.docker.internal:host-gateway -v pipelines:/app/pipelines --name pipelines --restart always --env-file .env ghcr.io/open-webui/pipelines:latest
 
 #To re-deploy the pipeline
 docker run -d -p 9099:9099 --add-host=host.docker.internal:host-gateway -v pipelines:/app/pipelines --name pipelines --restart always --env-file .env docker.io/library/pipeline:latest

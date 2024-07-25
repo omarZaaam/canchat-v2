@@ -310,6 +310,8 @@ cypress/screenshots
 
 #env
 /venv-ssc
+.venv-ssc
+venv-ssc/
 
 # containing some keys
 setupdockerinlocal.txt
