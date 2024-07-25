@@ -1,9 +1,10 @@
 """
 title: Llama Index DB Pipeline
-author: 0xThresh
-date: 2024-07-01
-version: 1.0
-license: MIT
+original author: 0xThresh
+Modified by: Jin Zeng 
+date: 2024-07-25
+version: 2.0
+license: MIT & IBM
 description: A pipeline for using text-to-SQL for retrieving relevant information from a database using the Llama Index library.
 requirements: llama_index, sqlalchemy, psycopg2-binary
 """
