@@ -32,6 +32,7 @@ from config import (
     CACHE_DIR,
     ENABLE_MODEL_FILTER,
     MODEL_FILTER_LIST,
+    DEFAULT_MAX_TOKEN,
     AppConfig,
 )
 from typing import List, Optional

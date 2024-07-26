@@ -17,6 +17,8 @@ from typing import List, Union, Sequence, Iterator, Any
 
 from chromadb.utils.batch_utils import create_batches
 from langchain_core.documents import Document
+from qdrant_client import models, QdrantClient
+from qdrant_client.models import PointStruct
 
 from langchain_community.document_loaders import (
     WebBaseLoader,
@@ -109,6 +111,7 @@ from config import (
     RAG_OPENAI_API_KEY,
     DEVICE_TYPE,
     CHROMA_CLIENT,
+    QDRANT_URL,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
     RAG_TEMPLATE,
@@ -616,6 +619,7 @@ def query_doc_handler(
 ):
     try:
         if app.state.config.ENABLE_RAG_HYBRID_SEARCH:
+            print(" ================================== query_doc_with_hybrid_search =================================== ")
             return query_doc_with_hybrid_search(
                 collection_name=form_data.collection_name,
                 query=form_data.query,
@@ -627,6 +631,7 @@ def query_doc_handler(
                 ),
             )
         else:
+            print(" ========================================== query_doc ========================================== ")
             return query_doc(
                 collection_name=form_data.collection_name,
                 query=form_data.query,
@@ -977,13 +982,6 @@ def store_docs_in_vector_db(
                 metadata[key] = str(value)
 
     try:
-        if overwrite:
-            for collection in CHROMA_CLIENT.list_collections():
-                if collection_name == collection.name:
-                    log.info(f"deleting existing collection {collection_name}")
-                    CHROMA_CLIENT.delete_collection(name=collection_name)
-
-        collection = CHROMA_CLIENT.create_collection(name=collection_name)
 
         embedding_func = get_embedding_function(
             app.state.config.RAG_EMBEDDING_ENGINE,
@@ -996,15 +994,25 @@ def store_docs_in_vector_db(
 
         embedding_texts = list(map(lambda x: x.replace("\n", " "), texts))
         embeddings = embedding_func(embedding_texts)
+        print("================================================== store_docs_in_vector_db QDRANT_CLIENT  ============================================")
+        QDRANT_CLIENT = QdrantClient(url=QDRANT_URL)
+        QDRANT_CLIENT.recreate_collection(collection_name=collection_name,vectors_config=models.VectorParams(size=len(embeddings[0]), distance=models.Distance.COSINE),)
 
-        for batch in create_batches(
-            api=CHROMA_CLIENT,
-            ids=[str(uuid.uuid4()) for _ in texts],
-            metadatas=metadatas,
-            embeddings=embeddings,
-            documents=texts,
-        ):
-            collection.add(*batch)
+        idxs = [str(uuid.uuid4()) for _ in texts]
+        QDRANT_CLIENT.upsert(
+            collection_name=collection_name,
+            points=[
+                PointStruct(
+                        id=idx,
+                        vector=vector,
+                        payload={
+                            "documents": text,
+                            "metadata": metadata,
+                        }
+                )
+                for (idx, text, vector, metadata) in zip(idxs, texts, embeddings, metadatas)
+            ]
+        )
 
         return True
     except Exception as e:
@@ -1367,10 +1375,17 @@ def scan_docs_dir(user=Depends(get_admin_user)):
 
     return True
 
+def qdrant_reset():
+    QDRANT_CLIENT = QdrantClient(url=QDRANT_URL)
+    collections = QDRANT_CLIENT.get_collections()
+
+    for collection in collections.collections:
+        QDRANT_CLIENT.delete_collection(collection_name=collection.name)
+        
 
 @app.get("/reset/db")
 def reset_vector_db(user=Depends(get_admin_user)):
-    CHROMA_CLIENT.reset()
+    qdrant_reset()
 
 
 @app.get("/reset/uploads")
@@ -1411,7 +1426,7 @@ def reset(user=Depends(get_admin_user)) -> bool:
             log.error("Failed to delete %s. Reason: %s" % (file_path, e))
 
     try:
-        CHROMA_CLIENT.reset()
+        qdrant_reset()
     except Exception as e:
         log.exception(e)
 

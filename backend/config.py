@@ -164,6 +164,10 @@ for version in soup.find_all("h2"):
 
 CHANGELOG = changelog_json
 
+####################################
+# DEFAULT_MAX_TOKEN
+####################################
+DEFAULT_MAX_TOKEN = os.environ.get("DEFAULT_MAX_TOKEN", )
 
 ####################################
 # SAFE_MODE
@@ -941,6 +945,10 @@ TIKA_SERVER_URL = PersistentConfig(
 ####################################
 # RAG
 ####################################
+
+QDRANT_URL = os.environ.get("QDRANT_URL", "http://172.17.0.1:6333")
+print("============================================= QDRANT_URL =====================================================")
+print("QDRANT_URL: ", QDRANT_URL)
 
 CHROMA_DATA_PATH = f"{DATA_DIR}/vector_db"
 CHROMA_TENANT = os.environ.get("CHROMA_TENANT", chromadb.DEFAULT_TENANT)

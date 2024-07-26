@@ -41,6 +41,7 @@ ARG USE_RERANKING_MODEL
 ARG UID
 ARG GID
 
+ENV QDRANT_URL="https://qdrant-canchat.canchat-ocp-7bd66546f44a6f6d0634d02d2a3736d6-0000.ca-tor.containers.appdomain.cloud/"
 ## Basis ##
 ENV ENV=prod \
     PORT=8080 \

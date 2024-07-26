@@ -18,14 +18,58 @@ from langchain.retrievers import (
     EnsembleRetriever,
 )
 
+from qdrant_client import QdrantClient
+
 from typing import Optional
 
 from utils.misc import get_last_user_message, add_or_update_system_message
-from config import SRC_LOG_LEVELS, CHROMA_CLIENT
+from config import SRC_LOG_LEVELS, QDRANT_URL
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["RAG"])
 
+def format_qdrant_scroll_search(results):
+    ids = []
+    distances = []
+    metadatas = []
+    documents = []
+    
+    for re in results:
+        ids.append(re.id)
+        metadatas.append(re.payload['metadata'])
+        documents.append(re.payload['documents'])
+
+    formatted_result = {
+        "ids": ids,   
+        "distances": distances,
+        "metadatas": metadatas,
+        "documents": documents
+    }
+    
+    return formatted_result
+
+def format_qdrant_vector_search_result(
+    results
+):
+    ids = []
+    distances = []
+    metadatas = []
+    documents = []
+    
+    for re in results:
+        ids.append(re.id)
+        distances.append(re.score)
+        metadatas.append(re.payload['metadata'])
+        documents.append(re.payload['documents'])
+
+    formatted_result = {
+        "ids": [ids],   
+        "distances": [distances],
+        "metadatas": [metadatas],
+        "documents": [documents]
+    }
+        
+    return formatted_result
 
 def query_doc(
     collection_name: str,
@@ -34,13 +78,14 @@ def query_doc(
     k: int,
 ):
     try:
-        collection = CHROMA_CLIENT.get_collection(name=collection_name)
         query_embeddings = embedding_function(query)
-
-        result = collection.query(
-            query_embeddings=[query_embeddings],
-            n_results=k,
-        )
+        QDRANT_CLIENT = QdrantClient(url=QDRANT_URL)
+        result = format_qdrant_vector_search_result(QDRANT_CLIENT.search(
+            collection_name=collection_name,
+            query_vector=query_embeddings,
+            limit=k,
+            with_payload=True
+        ))
 
         log.info(f"query_doc:result {result}")
         return result
@@ -50,32 +95,39 @@ def query_doc(
 
 def query_doc_with_hybrid_search(
     collection_name: str,
-    query: str,
+    query: str, 
     embedding_function,
     k: int,
     reranking_function,
     r: float,
 ):
     try:
-        collection = CHROMA_CLIENT.get_collection(name=collection_name)
-        documents = collection.get()  # get all documents
+        print("================================================== query_doc_with_hybrid_search QDRANT_CLIENT  ============================================")
+        QDRANT_CLIENT = QdrantClient(url=QDRANT_URL)
+        result = format_qdrant_scroll_search(QDRANT_CLIENT.scroll(
+            collection_name=collection_name,
+            limit=k,
+            with_payload=True
+        )[0])
 
         bm25_retriever = BM25Retriever.from_texts(
-            texts=documents.get("documents"),
-            metadatas=documents.get("metadatas"),
+            texts=result["documents"],
+            metadatas=result["metadatas"],
         )
         bm25_retriever.k = k
-
-        chroma_retriever = ChromaRetriever(
-            collection=collection,
+        
+        qdrant_retriever = QdrantRetriever(
+            QDRANT_CLIENT=QDRANT_CLIENT,
+            collection_name=collection_name,
             embedding_function=embedding_function,
             top_n=k,
         )
 
+        
         ensemble_retriever = EnsembleRetriever(
-            retrievers=[bm25_retriever, chroma_retriever], weights=[0.5, 0.5]
+            retrievers=[bm25_retriever, qdrant_retriever], weights=[0.5, 0.5]
         )
-
+        
         compressor = RerankCompressor(
             embedding_function=embedding_function,
             top_n=k,
@@ -87,7 +139,7 @@ def query_doc_with_hybrid_search(
             base_compressor=compressor, base_retriever=ensemble_retriever
         )
 
-        result = compression_retriever.invoke(query)
+        result = compression_retriever.invoke(query)        
         result = {
             "distances": [[d.metadata.get("score") for d in result]],
             "documents": [[d.page_content for d in result]],
@@ -418,6 +470,42 @@ class ChromaRetriever(BaseRetriever):
             query_embeddings=[query_embeddings],
             n_results=self.top_n,
         )
+
+        ids = results["ids"][0]
+        metadatas = results["metadatas"][0]
+        documents = results["documents"][0]
+
+        results = []
+        for idx in range(len(ids)):
+            results.append(
+                Document(
+                    metadata=metadatas[idx],
+                    page_content=documents[idx],
+                )
+            )
+        return results
+
+class QdrantRetriever(BaseRetriever):
+    QDRANT_CLIENT: Any
+    collection_name: Any
+    embedding_function: Any
+    top_n: int
+
+    def _get_relevant_documents(
+        self,
+        query: str,
+        *,
+        run_manager: CallbackManagerForRetrieverRun,
+    ) -> List[Document]:
+        query_embeddings = self.embedding_function(query)
+
+        
+        results = format_qdrant_vector_search_result(self.QDRANT_CLIENT.search(
+            collection_name=self.collection_name,
+            query_vector=query_embeddings,
+            limit=self.top_n,
+            with_payload=True,
+        ))
 
         ids = results["ids"][0]
         metadatas = results["metadatas"][0]
