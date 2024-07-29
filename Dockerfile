@@ -19,6 +19,7 @@ ARG GID=0
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as build
 ARG BUILD_HASH
+# ARG MAX_TOKEN=2000
 
 WORKDIR /app
 
@@ -41,7 +42,8 @@ ARG USE_RERANKING_MODEL
 ARG UID
 ARG GID
 
-ENV QDRANT_URL="https://qdrant-canchat.canchat-ocp-7bd66546f44a6f6d0634d02d2a3736d6-0000.ca-tor.containers.appdomain.cloud/"
+ARG QDRANT_URL
+ENV QDRANT_URL=$QDRANT_URL
 ## Basis ##
 ENV ENV=prod \
     PORT=8080 \

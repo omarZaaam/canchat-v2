@@ -946,7 +946,7 @@ TIKA_SERVER_URL = PersistentConfig(
 # RAG
 ####################################
 
-QDRANT_URL = os.environ.get("QDRANT_URL", "http://172.17.0.1:6333")
+QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
 print("============================================= QDRANT_URL =====================================================")
 print("QDRANT_URL: ", QDRANT_URL)
 
